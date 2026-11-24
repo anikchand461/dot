@@ -1,0 +1,23 @@
+# Build output
+/build/
+*.exe
+*.syso
+*.test
+*.out
+/dot
+dot-linux-*.tar.gz
+
+# Editors and OS clutter
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# Notebooks written by local testing / autosave temp files
+*.tmp
+*.xopp.bg.pdf
+/notes/

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=dot!
+GenericName=Notebook
+Comment=Handwritten notes, PDF annotation and diagrams
+Exec=dot %F
+Icon=dot
+Terminal=false
+Categories=Office;Graphics;Education;
+MimeType=application/x-dott;application/x-xopp;application/pdf;
+Keywords=notes;handwriting;pen;stylus;pdf;xournal;
+StartupWMClass=dot
