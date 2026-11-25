@@ -41,7 +41,9 @@ type homeState struct {
 	cache  map[string]*noteInfo // by path; keeps thumbnails across visits
 	gen    atomic.Int64         // bumps per scan, stops stale loaders
 	search widget.Editor
-	list   widget.List
+	// searchFocus asks the next frame to focus the search box (Cmd/Ctrl+F).
+	searchFocus bool
+	list        widget.List
 
 	newBtn, pdfBtn, openBtn, folderBtn, backBtn widget.Clickable
 	githubBtn                                   widget.Clickable

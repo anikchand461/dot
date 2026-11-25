@@ -61,7 +61,7 @@ func (a *App) homeView(gtx C) D {
 	cardW := min((avail-(cols-1)*gap)/cols, gtx.Dp(260))
 	rows := (len(shown) + cols - 1) / cols
 
-	head := []layout.Widget{a.homeHeader, a.homeToolbar}
+	head := []layout.Widget{a.homeHeader, a.homeToolbar, a.homeSearch}
 	total := len(head) + max(rows, 1) + 1
 	d := material.List(a.th, &h.list).Layout(gtx, total, func(gtx C, i int) D {
 		in := layout.Inset{Left: padDp, Right: padDp}
@@ -130,11 +130,8 @@ func (a *App) homeHeader(gtx C) D {
 				})
 			}),
 			layout.Rigid(func(gtx C) D {
-				return layout.Inset{Right: 10}.Layout(gtx, func(gtx C) D {
-					return a.flatButton(gtx, &h.githubBtn, githubGlyph, "GitHub", false)
-				})
+				return a.flatButton(gtx, &h.githubBtn, githubGlyph, "GitHub", false)
 			}),
-			layout.Rigid(a.searchBox),
 		)
 	})
 }
@@ -254,8 +251,16 @@ func greeting() string {
 	return "Good evening"
 }
 
+// homeSearch centres the search box above the notebook grid.
+func (a *App) homeSearch(gtx C) D {
+	return layout.Inset{Bottom: 28}.Layout(gtx, func(gtx C) D {
+		gtx.Constraints.Min.X = gtx.Constraints.Max.X
+		return layout.Center.Layout(gtx, a.searchBox)
+	})
+}
+
 func (a *App) searchBox(gtx C) D {
-	w := gtx.Dp(260)
+	w := min(gtx.Dp(420), gtx.Constraints.Max.X)
 	gtx.Constraints.Min.X, gtx.Constraints.Max.X = w, w
 	m := op.Record(gtx.Ops)
 	dims := layout.Inset{Top: 9, Bottom: 9, Left: 14, Right: 14}.Layout(gtx, func(gtx C) D {
@@ -279,6 +284,11 @@ func (a *App) searchBox(gtx C) D {
 	paint.FillShape(gtx.Ops, cardBG, clip.UniformRRect(r, gtx.Dp(8)).Op(gtx.Ops))
 	paint.FillShape(gtx.Ops, cardLine, clip.Stroke{Path: clip.UniformRRect(r, gtx.Dp(8)).Path(gtx.Ops), Width: 1}.Op())
 	call.Add(gtx.Ops)
+	if h := &a.homeUI; h.searchFocus {
+		gtx.Execute(key.FocusCmd{Tag: &h.search})
+		h.search.SetCaret(h.search.Len(), 0) // select the old query so typing replaces it
+		h.searchFocus = false
+	}
 	return dims
 }
 

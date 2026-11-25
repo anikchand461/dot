@@ -1165,11 +1165,8 @@ func (a *App) handleKeys(gtx C) {
 		key.Filter{Required: sc, Name: "O"},
 		key.Filter{Required: sc, Optional: key.ModShift, Name: "N"},
 		key.Filter{Required: sc, Name: "E"},
-		key.Filter{Required: sc, Name: "A"},
-		key.Filter{Required: sc, Name: "C"},
-		key.Filter{Required: sc, Name: "X"},
-		key.Filter{Required: sc, Name: "V"},
 		key.Filter{Required: sc, Name: "D"},
+		key.Filter{Required: sc, Name: "F"},
 		key.Filter{Required: sc, Optional: key.ModShift, Name: "="},
 		key.Filter{Required: sc, Optional: key.ModShift, Name: "+"},
 		key.Filter{Required: sc, Name: "-"},
@@ -1177,8 +1174,6 @@ func (a *App) handleKeys(gtx C) {
 		key.Filter{Name: key.NameEscape},
 		key.Filter{Name: key.NameReturn},
 		key.Filter{Name: key.NameEnter},
-		key.Filter{Name: key.NameDeleteBackward},
-		key.Filter{Name: key.NameDeleteForward},
 		key.Filter{Name: key.NamePageDown},
 		key.Filter{Name: key.NamePageUp},
 		key.Filter{Name: key.NameSpace},
@@ -1188,6 +1183,18 @@ func (a *App) handleKeys(gtx C) {
 	}
 	for _, n := range []key.Name{"V", "P", "H", "E", "S", "B", "T", "L", "G", "F"} {
 		filters = append(filters, key.Filter{Name: n})
+	}
+	// Key events go to whoever asks first, and this runs before the text
+	// fields lay out: leave editing keys to a focused field.
+	if !a.typing(gtx) {
+		filters = append(filters,
+			key.Filter{Required: sc, Name: "A"},
+			key.Filter{Required: sc, Name: "C"},
+			key.Filter{Required: sc, Name: "X"},
+			key.Filter{Required: sc, Name: "V"},
+			key.Filter{Name: key.NameDeleteBackward},
+			key.Filter{Name: key.NameDeleteForward},
+		)
 	}
 	for {
 		ev, ok := gtx.Event(filters...)
@@ -1210,9 +1217,6 @@ func (a *App) handleKeys(gtx C) {
 		}
 		cmd := e.Modifiers.Contain(sc)
 		shift := e.Modifiers.Contain(key.ModShift)
-		if cmd && a.typing(gtx) && (e.Name == "C" || e.Name == "V" || e.Name == "X" || e.Name == "A") {
-			continue // the text field handles its own clipboard
-		}
 		// The tour: Return for next, Esc to skip; other keys still work.
 		if a.tourUI.on && !a.home && !cmd && !a.typing(gtx) {
 			switch e.Name {
@@ -1223,6 +1227,13 @@ func (a *App) handleKeys(gtx C) {
 				a.endTour()
 				continue
 			}
+		}
+		if cmd && e.Name == "F" {
+			if !a.home {
+				a.goHome()
+			}
+			a.homeUI.searchFocus = true
+			continue
 		}
 		if a.home { // Home: only app-level shortcuts
 			switch {

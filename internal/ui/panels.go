@@ -899,7 +899,7 @@ func (a *App) menuCard(gtx C) D {
 		g          glyph
 		label, key string
 	}{
-		{gHome, "Home · all notebooks", ""}, {gAdd, "New notebook", "⌘N"}, {gWindow, "New window", "Shift ⌘N"}, {iconGlyph(iconsFolder), "Open…", "⌘O"}, {gPDF, "Annotate a PDF…", ""}, {iconGlyph(iconsSave), "Save", "⌘S"},
+		{gHome, "Home · all notebooks", "⌘F"}, {gAdd, "New notebook", "⌘N"}, {gWindow, "New window", "Shift ⌘N"}, {iconGlyph(iconsFolder), "Open…", "⌘O"}, {gPDF, "Annotate a PDF…", ""}, {iconGlyph(iconsSave), "Save", "⌘S"},
 		{iconGlyph(iconsSave), "Save as…", "Shift ⌘S"}, {gImage, "Insert image…", "or ⌘V"}, {gExport, "Export as PDF…", "⌘E"},
 		{gExport, "Export page as PNG…", ""}, {gHelp, "Keyboard shortcuts", "?"},
 	}
@@ -984,6 +984,7 @@ func (a *App) help(gtx C) {
 		{"⌘S   Shift ⌘S   ⌘O   ⌘N", "Save · save as · open · new"},
 		{"Shift ⌘N", "New window (each window has its own file)"},
 		{"⌘E", "Export PDF"},
+		{"⌘F", "Search notebooks on Home"},
 		{"⌘+  ⌘−  ⌘0  ⌘scroll", "Zoom in · out · fit · at cursor"},
 		{"PgUp  PgDn", "Previous / next page"},
 		{"Right-drag · two fingers", "Pan"},
