@@ -44,6 +44,7 @@ type homeState struct {
 	list   widget.List
 
 	newBtn, pdfBtn, openBtn, folderBtn, backBtn widget.Clickable
+	githubBtn                                   widget.Clickable
 	fmtInk, fmtXopp                             widget.Clickable
 	renaming                                    *noteInfo
 	renameEd                                    widget.Editor
@@ -200,6 +201,9 @@ func (a *App) homeClicks(gtx C) {
 	}
 	if h.backBtn.Clicked(gtx) {
 		a.leaveHome()
+	}
+	if h.githubBtn.Clicked(gtx) {
+		openExternal(RepoURL)
 	}
 	if h.fmtInk.Clicked(gtx) {
 		a.cfg.NewFormat = "dott"

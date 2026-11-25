@@ -681,14 +681,23 @@ func (a *App) chooseSaveFolder() {
 func (a *App) revealSaveFolder() {
 	dir := a.cfg.Dir()
 	os.MkdirAll(dir, 0o755)
-	cmd := "open"
+	openExternal(dir)
+}
+
+// openExternal opens a folder or web link with the system's default app.
+func openExternal(target string) {
 	switch runtime.GOOS {
 	case "windows":
-		cmd = "explorer"
-	case "linux", "freebsd", "openbsd":
-		cmd = "xdg-open"
+		if strings.HasPrefix(target, "http") {
+			exec.Command("rundll32", "url.dll,FileProtocolHandler", target).Start()
+		} else {
+			exec.Command("explorer", target).Start()
+		}
+	case "darwin":
+		exec.Command("open", target).Start()
+	default:
+		exec.Command("xdg-open", target).Start()
 	}
-	exec.Command(cmd, dir).Start()
 }
 
 // shortPath shows a path with ~ for the home folder.

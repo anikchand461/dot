@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<script>document.documentElement.classList.add("js")</script>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot! · a fast, modern handwriting notebook</title>
+<meta name="description" content="dot! is a fast, offline handwriting notebook for macOS, Windows and Linux. Pen pressure, Excalidraw-style diagrams, PDF annotation, and full Xournal++ compatibility.">
+<meta property="og:title" content="dot! · a fast, modern handwriting notebook">
+<meta property="og:description" content="Offline handwriting notes with pen pressure, diagrams and PDF annotation. Opens Xournal++ files.">
+<meta property="og:image" content="images/editor.png">
+<link rel="icon" type="image/png" href="images/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1014;
+    --bg2: #15161c;
+    --card: #1a1b22;
+    --line: #2a2b34;
+    --text: #ececf1;
+    --muted: #9a9ba8;
+    --accent: #8b6cff;
+    --accent2: #b49dff;
+    --good: #3fb950;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .hand { font-family: Caveat, cursive; font-weight: 600; }
+  .bang { color: var(--accent); }
+
+  /* nav */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(15, 16, 20, .72); backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, .05);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+  .brand img { width: 30px; height: 30px; }
+  nav .links { display: flex; gap: 24px; margin-left: auto; color: var(--muted); font-size: 15px; }
+  nav .links a:hover { color: var(--text); }
+  .gh-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); font-size: 14px; font-weight: 500; transition: .2s;
+  }
+  .gh-btn:hover { border-color: #4a4b58; background: #21222a; }
+  .gh-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+  /* hero */
+  .hero { position: relative; padding: 96px 0 40px; text-align: center; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: -200px 0 auto; height: 700px; z-index: -1;
+    background: radial-gradient(600px 340px at 50% 30%, rgba(139, 108, 255, .28), transparent 70%);
+  }
+  .hero .logo { width: 96px; height: 96px; margin: 0 auto 22px; animation: float 6s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-8px) rotate(-4deg); } }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 22px;
+    padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--accent2);
+    background: rgba(139, 108, 255, .1); border: 1px solid rgba(139, 108, 255, .25);
+  }
+  h1 { font-size: clamp(44px, 7vw, 76px); line-height: 1.05; margin: 0 0 20px; letter-spacing: -.03em; font-weight: 800; }
+  h1 .hand { font-size: 1.15em; color: var(--accent2); letter-spacing: 0; }
+  .lead { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 640px; margin: 0 auto 36px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px;
+    border-radius: 12px; font-weight: 600; font-size: 16px; transition: .2s;
+  }
+  .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 10px 30px -10px rgba(139, 108, 255, .7); }
+  .btn.primary:hover { background: #9b80ff; transform: translateY(-1px); }
+  .btn.ghost { border: 1px solid var(--line); background: var(--card); }
+  .btn.ghost:hover { border-color: #4a4b58; }
+  .btn svg { width: 20px; height: 20px; fill: currentColor; }
+  .btn small { font-weight: 400; opacity: .75; font-size: 13px; }
+  .meta { margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .meta a { text-decoration: underline; text-underline-offset: 3px; }
+
+  .shot {
+    margin: 64px auto 0; max-width: 1000px; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--line); background: #17181d;
+    box-shadow: 0 40px 120px -30px rgba(139, 108, 255, .35), 0 20px 60px rgba(0, 0, 0, .5);
+  }
+  .shot .bar { display: flex; gap: 8px; padding: 12px 14px; background: #1e1f25; border-bottom: 1px solid var(--line); }
+  .shot .bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+  .shot .bar i:nth-child(2) { background: #febc2e; }
+  .shot .bar i:nth-child(3) { background: #28c840; }
+
+  /* sections */
+  section { padding: 96px 0; }
+  .eyebrow { color: var(--accent2); font-weight: 600; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.15; margin: 10px 0 16px; letter-spacing: -.02em; }
+  .sub { color: var(--muted); max-width: 640px; font-size: 18px; margin: 0; }
+  .center { text-align: center; }
+  .center .sub { margin: 0 auto; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px; transition: .25s;
+  }
+  .card:hover { border-color: rgba(139, 108, 255, .45); transform: translateY(-3px); }
+  .card .ic {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    background: rgba(139, 108, 255, .12); font-size: 22px; margin-bottom: 16px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .split { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+  .split.rev { grid-template-columns: 1fr 1.05fr; }
+  .split .img { border-radius: 14px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8); }
+  .ticks { list-style: none; padding: 0; margin: 24px 0 0; }
+  .ticks li { padding-left: 30px; position: relative; margin: 10px 0; color: #cfcfd8; }
+  .ticks li::before { content: "✓"; position: absolute; left: 0; color: var(--accent2); font-weight: 700; }
+  .duo { display: flex; gap: 16px; align-items: flex-start; }
+  .duo .img:first-child { flex: 1.4; }
+  .duo .img:last-child { flex: 1; }
+
+  /* why */
+  .why { background: var(--bg2); border-block: 1px solid var(--line); }
+  .why .quote { font-size: clamp(30px, 4vw, 42px); line-height: 1.2; color: var(--accent2); margin: 0 0 20px; }
+  .why p { color: #cfcfd8; font-size: 17px; }
+  .split .duo { align-items: center; }
+  .duo .img:last-child { max-width: 260px; }
+
+  /* comparison */
+  .bench { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 48px; }
+  .metric { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; }
+  .metric h4 { margin: 0 0 16px; font-size: 15px; font-weight: 600; display: flex; justify-content: space-between; }
+  .metric h4 span { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .row { display: grid; grid-template-columns: 90px 1fr 64px; align-items: center; gap: 12px; margin: 10px 0; font-size: 14px; }
+  .row .who { color: var(--muted); }
+  .row .track { height: 10px; background: #24252d; border-radius: 99px; overflow: hidden; }
+  .row .fill { height: 100%; border-radius: 99px; background: #5b5c68; width: 0; transition: width 1.2s cubic-bezier(.2, .8, .2, 1); }
+  .row.dot .fill { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .row.dot .who { color: var(--text); font-weight: 600; }
+  .row .val { text-align: right; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 22px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 40px; font-size: 15px; }
+  th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  td:not(:first-child), th:not(:first-child) { text-align: center; width: 22%; }
+  .yes { color: var(--good); font-weight: 700; }
+  .no { color: #5b5c68; }
+  .tablewrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 8px; overflow-x: auto; }
+  .tablewrap table { margin: 0; }
+  .tablewrap tr:last-child td { border-bottom: 0; }
+
+  /* downloads */
+  .dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+  .os {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px 22px; display: flex; flex-direction: column; gap: 6px; transition: .25s;
+  }
+  .os.mine { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(139, 108, 255, .12); }
+  .os svg { width: 34px; height: 34px; fill: var(--text); margin-bottom: 10px; }
+  .os h3 { margin: 0; font-size: 18px; }
+  .os .chip { font-size: 12px; color: var(--muted); }
+  .os .files { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .os .files a {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 10px; background: #22232b; font-size: 14px; font-weight: 500; transition: .2s;
+  }
+  .os .files a:hover { background: var(--accent); color: #fff; }
+  .os .files a span { opacity: .6; font-weight: 400; font-size: 12px; }
+  .help { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+  .help div { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; font-size: 14px; color: var(--muted); }
+  .help b { color: var(--text); display: block; margin-bottom: 4px; }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: #24252d; padding: 2px 6px; border-radius: 6px; color: #dcd3ff; }
+
+  /* closing */
+  .final { text-align: center; }
+  .final .box {
+    padding: 64px 24px; border-radius: 24px; border: 1px solid rgba(139, 108, 255, .3);
+    background: radial-gradient(500px 200px at 50% 0%, rgba(139, 108, 255, .22), transparent), var(--card);
+  }
+  footer { border-top: 1px solid var(--line); padding: 32px 0; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  footer .brand { font-size: 16px; color: var(--text); }
+  footer .brand img { width: 22px; height: 22px; }
+
+  .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s, transform .7s; }
+  .js .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .grid, .dl, .help { grid-template-columns: 1fr 1fr; }
+    .split, .split.rev, .bench { grid-template-columns: 1fr; gap: 32px; }
+    .split.rev .text { order: -1; }
+    nav .links a:not(.gh-btn) { display: none; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 16px; }
+    .grid, .dl, .help { grid-template-columns: 1fr; }
+    section { padding: 64px 0; }
+    .hero { padding-top: 64px; }
+    .duo { flex-direction: column; }
+    .row { grid-template-columns: 70px 1fr 54px; }
+    th, td { padding: 12px 8px; font-size: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .js .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-gh" viewBox="0 0 16 16"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.83-.81-3-.79-1.55.02-2.97.9-3.77 2.28-1.6 2.78-.41 6.9 1.16 9.15.76 1.1 1.67 2.34 2.87 2.3 1.15-.05 1.59-.75 2.98-.75 1.39 0 1.79.75 3 .72 1.24-.02 2.03-1.12 2.78-2.23.88-1.28 1.24-2.52 1.26-2.58-.03-.01-2.41-.93-2.44-3.67zM14.1 5.86c.64-.77 1.07-1.85.95-2.92-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.77-.97 2.82 1.02.08 2.07-.52 2.71-1.28z"/></symbol>
+  <symbol id="i-win" viewBox="0 0 24 24"><path d="M3 5.1 10.4 4v7.2H3V5.1zm0 13.8 7.4 1.1v-7.1H3v6zM11.3 3.9 21 2.5v8.7h-9.7V3.9zm0 16.2 9.7 1.4v-8.6h-9.7v7.2z"/></symbol>
+  <symbol id="i-linux" viewBox="0 0 24 24"><path d="M12.5 2c-2.2 0-3.6 1.8-3.6 4.6 0 1 .1 1.7-.4 2.7-.6 1.1-2.5 3.4-2.8 6-.1 1.1.2 2 .6 2.6-.6.4-1.7.6-1.9 1.4-.2.9 1 1.4 2.6 1.9 1.4.4 2.3.8 3.1.8.7 0 1.2-.4 1.6-.8h1.8c.4.4.9.8 1.6.8.8 0 1.7-.4 3.1-.8 1.6-.5 2.8-1 2.6-1.9-.2-.8-1.3-1-1.9-1.4.4-.6.7-1.5.6-2.6-.3-2.6-2.2-4.9-2.8-6-.5-1-.4-1.7-.4-2.7C16.1 3.8 14.7 2 12.5 2zm-1.3 3.4c.5 0 .8.6.8 1.3 0 .3-.1.6-.2.8l-.5-.2c.1-.2.1-.4.1-.6 0-.4-.1-.6-.3-.6s-.3.3-.3.6v.3l-.5.2c-.1-.2-.1-.4-.1-.6.1-.7.5-1.2 1-1.2zm2.7 0c.6 0 1 .6 1 1.3 0 .3-.1.5-.2.7l-.5-.1c.1-.2.1-.4.1-.6 0-.4-.2-.7-.4-.7s-.4.3-.4.7v.2l-.6-.2v-.1c0-.7.4-1.2 1-1.2zm-1.4 2.4c.5 0 1.4.4 2 .7.3.2.4.4.3.6-.1.3-.6.7-1.5 1.1-.4.2-.6.3-.9.3-.4 0-.7-.3-1.1-.6-.4-.3-.8-.6-.9-.9 0-.2.1-.4.4-.6.6-.3 1.2-.6 1.7-.6z"/></symbol>
+</svg>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="images/logo.png" alt=""><span>dot<span class="bang">!</span></span></a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#compare">vs Xournal++</a>
+      <a href="#download">Download</a>
+      <a class="gh-btn" href="https://github.com/anikchand461/dot" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="logo" src="images/logo.png" alt="dot! logo">
+    <div class="pill">✦ Free · Offline · macOS, Windows &amp; Linux</div>
+    <h1>Notes that feel like<br><span class="hand">real ink.</span></h1>
+    <p class="lead">dot! is a fast, modern handwriting notebook. Write with a pen, sketch diagrams, annotate PDFs, and keep every page as a file you own. It opens your Xournal++ notebooks as they are.</p>
+    <div class="cta">
+      <a class="btn primary" id="hero-dl" href="#download"><svg><use href="#i-apple"/></svg><span id="hero-label">Download for free</span></a>
+      <a class="btn ghost" href="https://github.com/anikchand461/dot" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>View on GitHub</a>
+    </div>
+    <div class="meta"><span id="version">v0.4.0</span> · <a href="#download">All platforms</a> · No account, no cloud</div>
+    <div class="shot reveal">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <img src="images/editor.png" alt="Writing in dot!: handwriting fonts and a Plan, Build, Ship diagram" width="1400" height="875">
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="center reveal">
+      <div class="eyebrow">Features</div>
+      <h2>Everything you need. Nothing in your way.</h2>
+      <p class="sub">A full-screen page, one floating tool dock, and the features that make handwritten notes useful.</p>
+    </div>
+    <div class="grid">
+      <div class="card reveal"><div class="ic">✍️</div><h3>Pressure-sensitive ink</h3><p>Real stylus pressure on macOS and Windows. Fountain, ballpoint, brush and calligraphy pens, smoothed into curves while you write.</p></div>
+      <div class="card reveal"><div class="ic">🔷</div><h3>Diagrams, Excalidraw-style</h3><p>11 shapes with fills, dashed and dotted lines, bendable arrows, and labels typed inside boxes. Draw a rough shape and hold to snap it clean.</p></div>
+      <div class="card reveal"><div class="ic">📄</div><h3>Annotate any PDF</h3><p>Write on slides and papers. Exports keep the original pages, with selectable text, and draw your ink on top as vectors.</p></div>
+      <div class="card reveal"><div class="ic">🔤</div><h3>Handwriting fonts</h3><p>Shantell Sans, Caveat, Kalam, Patrick Hand and Indie Flower, chosen from a live-preview dropdown and embedded in PDFs.</p></div>
+      <div class="card reveal"><div class="ic">🖼️</div><h3>Paste &amp; crop</h3><p>Press ⌘V to paste a screenshot, then resize and crop it on the page. Use any picture as your paper background.</p></div>
+      <div class="card reveal"><div class="ic">🔒</div><h3>Yours, offline</h3><p>No account, no telemetry. Notebooks are plain files in a folder you choose, autosaved every 20 seconds.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="split reveal">
+      <div class="img"><img src="images/home.png" alt="Home page with notebook previews" width="1400" height="560"></div>
+      <div class="text">
+        <div class="eyebrow">Home</div>
+        <h2>All your notebooks, at a glance.</h2>
+        <p class="sub">dot! opens to a Home page with every notebook in your folder, each shown with a live preview of its first page.</p>
+        <ul class="ticks">
+          <li>Search, sort by recent or A–Z</li>
+          <li>Rename in place, move to Trash</li>
+          <li>Start new notebooks with your favourite paper</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="split rev reveal">
+      <div class="text">
+        <div class="eyebrow">Pens &amp; fonts</div>
+        <h2>Pick a nib. Pick a voice.</h2>
+        <p class="sub">Tune pressure sensitivity, stabiliser and tapered ends, then type in a font that still looks handwritten.</p>
+        <ul class="ticks">
+          <li>Four real pen types with nib previews</li>
+          <li>Colour wheel and your 10 recent colours</li>
+          <li>Plain, ruled, grid and dot paper in 15 colours</li>
+        </ul>
+      </div>
+      <div class="duo">
+        <div class="img"><img src="images/pens.png" alt="Pen types"></div>
+        <div class="img"><img src="images/fonts.png" alt="Font dropdown"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="why">
+  <div class="wrap">
+    <div class="split reveal">
+      <div>
+        <div class="eyebrow">Why dot!</div>
+        <p class="quote hand">“I love Xournal++.<br>I just wanted it to feel modern.”</p>
+      </div>
+      <div>
+        <p>Xournal++ is a great open-source app: it handles a pen well, annotates PDFs, and keeps notes in open files. But day to day it felt dated, with a crowded toolbar, no filled shapes or bendable arrows, and no home for your notes.</p>
+        <p>dot! keeps what makes Xournal++ good and rebuilds the experience around a clean page and a single dock. It reads and writes <code>.xopp</code>, so you can switch back and forth: nothing is locked in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <div class="center reveal">
+      <div class="eyebrow">dot! vs Xournal++</div>
+      <h2>Lighter on your CPU. Faster to open.</h2>
+      <p class="sub">Both apps ran the same automated workload on the same Apple Silicon Mac: a 58-page notebook with 17,464 strokes, with drawing, scrolling, zooming and erasing.</p>
+    </div>
+    <div class="bench">
+      <div class="metric reveal">
+        <h4>Open a 17 MB notebook <span>seconds · lower is better</span></h4>
+        <div class="row"><span class="who">Xournal++</span><div class="track"><div class="fill" data-w="100"></div></div><span class="val">3.5 s</span></div>
+        <div class="row dot"><span class="who">dot!</span><div class="track"><div class="fill" data-w="31"></div></div><span class="val">1.1 s</span></div>
+      </div>
+      <div class="metric reveal">
+        <h4>Average CPU under load <span>lower is better</span></h4>
+        <div class="row"><span class="who">Xournal++</span><div class="track"><div class="fill" data-w="100"></div></div><span class="val">54 %</span></div>
+        <div class="row dot"><span class="who">dot!</span><div class="track"><div class="fill" data-w="69"></div></div><span class="val">37 %</span></div>
+      </div>
+      <div class="metric reveal">
+        <h4>CPU while scrolling <span>lower is better</span></h4>
+        <div class="row"><span class="who">Xournal++</span><div class="track"><div class="fill" data-w="100"></div></div><span class="val">75 %</span></div>
+        <div class="row dot"><span class="who">dot!</span><div class="track"><div class="fill" data-w="53"></div></div><span class="val">40 %</span></div>
+      </div>
+      <div class="metric reveal">
+        <h4>CPU while erasing <span>lower is better</span></h4>
+        <div class="row"><span class="who">Xournal++</span><div class="track"><div class="fill" data-w="100"></div></div><span class="val">43 %</span></div>
+        <div class="row dot"><span class="who">dot!</span><div class="track"><div class="fill" data-w="40"></div></div><span class="val">17 %</span></div>
+      </div>
+    </div>
+    <p class="note center reveal">Where Xournal++ wins: it uses less memory (335 MB peak vs 549 MB) and slightly less CPU while drawing (19 % vs 27 %, since dot! smooths every stroke live). Idle CPU: dot! 0.0 %, Xournal++ 3.0 %.</p>
+
+    <div class="tablewrap reveal" style="margin-top:40px">
+      <table>
+        <tr><th>Feature</th><th>Xournal++</th><th>dot!</th></tr>
+        <tr><td>Pen pressure, PDF annotation, <code>.xopp</code> files</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Filled shapes in any colour</td><td class="no">outline only</td><td class="yes">✓</td></tr>
+        <tr><td>Bendable arrows, text inside shapes</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Bundled handwriting fonts</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Paste &amp; crop images on the page</td><td class="no">paste only</td><td class="yes">✓</td></tr>
+        <tr><td>Home page with previews and search</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Single-file notebooks with images &amp; PDF inside (<code>.dott</code>)</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Layers, LaTeX, audio recording, plugins</td><td class="yes">✓</td><td class="no">not yet</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="download" class="why">
+  <div class="wrap">
+    <div class="center reveal">
+      <div class="eyebrow">Download</div>
+      <h2>Get dot! for your computer.</h2>
+      <p class="sub">Free, about 10 MB, with no installer needed. Pick your system below.</p>
+    </div>
+    <div class="dl">
+      <div class="os reveal" data-os="mac-arm">
+        <svg><use href="#i-apple"/></svg><h3>macOS</h3><span class="chip">Apple Silicon · M1 – M4</span>
+        <div class="files"><a href="https://github.com/anikchand461/dot/releases/latest/download/dot-macos-apple-silicon.zip">Download .zip <span>10 MB</span></a></div>
+      </div>
+      <div class="os reveal" data-os="mac-intel">
+        <svg><use href="#i-apple"/></svg><h3>macOS</h3><span class="chip">Intel</span>
+        <div class="files"><a href="https://github.com/anikchand461/dot/releases/latest/download/dot-macos-intel.zip">Download .zip <span>10 MB</span></a></div>
+      </div>
+      <div class="os reveal" data-os="win">
+        <svg><use href="#i-win"/></svg><h3>Windows</h3><span class="chip">Windows 10 / 11</span>
+        <div class="files">
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot.exe">x64 .exe <span>24 MB</span></a>
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-arm64.exe">ARM64 .exe <span>23 MB</span></a>
+        </div>
+      </div>
+      <div class="os reveal" data-os="linux">
+        <svg><use href="#i-linux"/></svg><h3>Linux</h3><span class="chip">Wayland &amp; X11</span>
+        <div class="files">
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-linux-amd64.tar.gz">x64 .tar.gz <span>10 MB</span></a>
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-linux-arm64.tar.gz">ARM64 .tar.gz <span>10 MB</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="help reveal">
+      <div><b>macOS: first launch</b>Unzip and drag <code>dot.app</code> to Applications. If macOS says it can't be opened, run <code>xattr -dr com.apple.quarantine /Applications/dot.app</code> once.</div>
+      <div><b>Windows: first launch</b>If SmartScreen appears, click <i>More info → Run anyway</i>. dot! is a single portable <code>.exe</code>.</div>
+      <div><b>Linux: install</b>Unpack and run <code>./install.sh</code>. It adds dot! to your app menu with file types, and needs no root.</div>
+    </div>
+    <p class="note center">Looking for an older version? See <a href="https://github.com/anikchand461/dot/releases" style="text-decoration:underline">all releases</a>.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap final reveal">
+    <div class="box">
+      <img src="images/logo.png" alt="" width="64" height="64" style="margin:0 auto 18px">
+      <h2>Start writing in <span class="hand" style="color:var(--accent2);font-size:1.2em">seconds.</span></h2>
+      <p class="sub" style="margin:0 auto 32px">Open your existing Xournal++ notebooks, or start a fresh page.</p>
+      <div class="cta">
+        <a class="btn primary" href="#download">Download dot!</a>
+        <a class="btn ghost" href="https://github.com/anikchand461/dot" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="brand"><img src="images/logo.png" alt=""><span>dot<span class="bang">!</span></span></span>
+    <span>Made with a pen, a lot of ink, and Go.</span>
+    <a class="gh-btn" href="https://github.com/anikchand461/dot" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>anikchand461/dot</a>
+  </div>
+</footer>
+
+<script>
+  // Recommend the download for this computer.
+  (async () => {
+    const ua = navigator.userAgent;
+    let os = null, label = "", icon = "#i-apple";
+    if (/Windows/.test(ua)) { os = "win"; label = "Download for Windows"; icon = "#i-win"; }
+    else if (/Mac/.test(ua)) {
+      os = "mac-arm"; label = "Download for Mac";
+      try {
+        const h = await navigator.userAgentData?.getHighEntropyValues(["architecture"]);
+        if (h && h.architecture === "x86") os = "mac-intel";
+      } catch (e) {}
+    }
+    else if (/Linux/.test(ua) && !/Android/.test(ua)) { os = "linux"; label = "Download for Linux"; icon = "#i-linux"; }
+    if (!os) return;
+    const card = document.querySelector(`.os[data-os="${os}"]`);
+    card.classList.add("mine");
+    const a = document.getElementById("hero-dl");
+    a.href = card.querySelector(".files a").href;
+    a.querySelector("use").setAttribute("href", icon);
+    document.getElementById("hero-label").innerHTML = label + (os === "mac-arm" ? " <small>Apple Silicon</small>" : os === "mac-intel" ? " <small>Intel</small>" : "");
+  })();
+
+  // Show the latest release version.
+  fetch("https://api.github.com/repos/anikchand461/dot/releases/latest")
+    .then(r => r.ok ? r.json() : null)
+    .then(j => { if (j && j.tag_name) document.getElementById("version").textContent = j.tag_name; })
+    .catch(() => {});
+
+  // Fade sections in and grow the benchmark bars as they scroll into view.
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add("in");
+    e.target.querySelectorAll(".fill").forEach(f => f.style.width = f.dataset.w + "%");
+    io.unobserve(e.target);
+  }), { threshold: .15 });
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+</script>
+</body>
+</html>

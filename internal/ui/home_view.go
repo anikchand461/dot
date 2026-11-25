@@ -129,6 +129,11 @@ func (a *App) homeHeader(gtx C) D {
 					return a.flatButton(gtx, &h.backBtn, gUndo, "Back to "+a.baseName(), false)
 				})
 			}),
+			layout.Rigid(func(gtx C) D {
+				return layout.Inset{Right: 10}.Layout(gtx, func(gtx C) D {
+					return a.flatButton(gtx, &h.githubBtn, githubGlyph, "GitHub", false)
+				})
+			}),
 			layout.Rigid(a.searchBox),
 		)
 	})

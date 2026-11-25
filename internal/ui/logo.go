@@ -78,3 +78,46 @@ func logoMarkOutlined(gtx C, h int) D {
 	draw(logo.op, 0, 0)
 	return D{Size: image.Pt(w, h)}
 }
+
+// The GitHub mark, white on transparent.
+//
+//go:embed assets/github-mark.png
+var githubPNG []byte
+
+// RepoURL is dot!'s source code and downloads.
+const RepoURL = "https://github.com/anikchand461/dot"
+
+var github struct {
+	once   sync.Once
+	mask   image.Image
+	tinted map[color.NRGBA]paint.ImageOp
+}
+
+// githubGlyph draws the GitHub mark in col.
+func githubGlyph(gtx C, sz int, col color.NRGBA) {
+	github.once.Do(func() {
+		github.mask, _ = png.Decode(bytes.NewReader(githubPNG))
+		github.tinted = map[color.NRGBA]paint.ImageOp{}
+	})
+	if github.mask == nil {
+		return
+	}
+	img, ok := github.tinted[col]
+	if !ok {
+		b := github.mask.Bounds()
+		t := image.NewNRGBA(b)
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				_, _, _, a := github.mask.At(x, y).RGBA()
+				t.SetNRGBA(x, y, color.NRGBA{col.R, col.G, col.B, uint8(uint32(col.A) * (a >> 8) / 255)})
+			}
+		}
+		img = paint.NewImageOp(t)
+		github.tinted[col] = img
+	}
+	s := float32(sz) / float32(github.mask.Bounds().Dx())
+	defer op.Affine(f32.AffineId().Scale(f32.Point{}, f32.Pt(s, s))).Push(gtx.Ops).Pop()
+	img.Filter = paint.FilterLinear
+	img.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+}
