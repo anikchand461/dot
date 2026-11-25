@@ -197,6 +197,8 @@
   footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   footer .brand { font-size: 16px; color: var(--text); }
   footer .brand img { width: 22px; height: 22px; }
+  footer .flinks { display: flex; gap: 20px; }
+  footer .flinks a:hover { color: var(--text); }
 
 
   /* hero demo: dot! writing a page by itself */
@@ -277,9 +279,9 @@
     <p class="lead">dot! is a fast, modern handwriting notebook. Write with a pen, sketch diagrams, annotate PDFs, and keep every page as a file you own. It opens your Xournal++ notebooks as they are.</p>
     <div class="cta">
       <a class="btn primary" id="hero-dl" href="#download"><svg><use href="#i-apple"/></svg><span id="hero-label">Download for free</span></a>
-      <a class="btn ghost" href="https://github.com/anikchand461/dot" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>View on GitHub</a>
+      <a class="btn ghost" href="#download">Other platforms</a>
     </div>
-    <div class="meta"><span id="version">v0.4.0</span> · <a href="#download">All platforms</a> · No account, no cloud</div>
+    <div class="meta"><span id="version">v0.4.0</span> · Free · No account, no cloud</div>
     <div class="shot reveal">
       <div class="bar"><i></i><i></i><i></i><span>Weekly ideas — dot!</span></div>
       <svg id="demo" viewBox="0 0 1000 600" role="img" aria-label="Animation: dot! writing a page of notes, drawing boxes and bending arrows">
@@ -497,7 +499,7 @@
   <div class="wrap">
     <span class="brand"><img src="images/logo.png" alt=""><span>dot<span class="bang">!</span></span></span>
     <span>Made with a pen, a lot of ink, and Go.</span>
-    <a class="gh-btn" href="https://github.com/anikchand461/dot" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>anikchand461/dot</a>
+    <span class="flinks"><a href="https://github.com/anikchand461/dot/releases" target="_blank" rel="noopener">Releases</a><a href="https://github.com/anikchand461/dot/issues" target="_blank" rel="noopener">Report a bug</a></span>
   </div>
 </footer>
 
