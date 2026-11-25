@@ -758,9 +758,17 @@ func (a *App) openPDF(path string) {
 		// A .dott holds its own copy of the PDF; match by name.
 		if p := d.Pages[0].Background.PDFPath; p == path || filepath.Base(p) == filepath.Base(path) || strings.HasSuffix(p, "-"+filepath.Base(path)) {
 			a.setDocument(d, stem+ext)
+			a.home = false
 			a.notify("Continuing your notes on " + filepath.Base(path))
 			return
 		}
+	}
+	// Never overwrite an unrelated notebook that happens to share the name.
+	for i := 2; ; i++ {
+		if _, err := os.Stat(notes); err != nil {
+			break
+		}
+		notes = fmt.Sprintf("%s %d%s", stem, i, a.newExt())
 	}
 	a.notify("Opening " + filepath.Base(path) + "…")
 	a.async(func() func() {
@@ -770,6 +778,8 @@ func (a *App) openPDF(path string) {
 		}
 		return func() {
 			a.setDocument(document.NewPDFDocument(path, sizes), notes)
+			a.home = false
+			a.doSave(false, true) // create the notebook in the save folder right away
 			a.notify(fmt.Sprintf("%s · %d pages · write anywhere, then ⌘E to export", filepath.Base(path), len(sizes)))
 		}
 	})
