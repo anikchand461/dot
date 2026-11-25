@@ -32,6 +32,19 @@ func at(gtx C, dir layout.Direction, in layout.Inset, w layout.Widget) {
 	})
 }
 
+// atRect is at, and also returns where w landed (the tour spotlights it).
+func atRect(gtx C, dir layout.Direction, in layout.Inset, w layout.Widget) image.Rectangle {
+	var r image.Rectangle
+	at(gtx, dir, in, func(gtx C) D {
+		d := w(gtx)
+		r.Max = d.Size
+		return d
+	})
+	l, t := gtx.Dp(in.Left), gtx.Dp(in.Top)
+	bounds := gtx.Constraints.Max.Sub(image.Pt(l+gtx.Dp(in.Right), t+gtx.Dp(in.Bottom)))
+	return r.Add(dir.Position(r.Max, bounds)).Add(image.Pt(l, t))
+}
+
 func fill(gtx C, col color.NRGBA) D {
 	paint.FillShape(gtx.Ops, col, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	return D{Size: gtx.Constraints.Max}
@@ -192,11 +205,11 @@ func (a *App) canvasArea(gtx C) D {
 	// Corners show their controls only while the pointer is near them (or
 	// a panel they control is open), keeping the page uncluttered.
 	topRight := a.hoverNear(gtx, "tr", image.Rect(size.X-gtx.Dp(400), 0, size.X, gtx.Dp(110))) ||
-		a.showPages || a.showSetup || a.showHelp
+		a.showPages || a.showSetup || a.showHelp || a.tourUI.on
 	bottomLeft := a.hoverNear(gtx, "bl", image.Rect(0, size.Y-gtx.Dp(110), gtx.Dp(380), size.Y)) || a.showMenu
 	if !a.focus {
 		if topRight {
-			at(gtx, layout.NE, layout.UniformInset(edge), a.actionsPill)
+			a.tourUI.actions = atRect(gtx, layout.NE, layout.UniformInset(edge), a.actionsPill)
 		}
 		if a.showPages {
 			at(gtx, layout.W, layout.Inset{Left: edge, Top: top, Bottom: 70}, a.pagesPanel)
@@ -205,13 +218,16 @@ func (a *App) canvasArea(gtx C) D {
 			at(gtx, layout.E, layout.Inset{Right: edge, Top: top, Bottom: 70}, a.setupPanel)
 		}
 	}
-	at(gtx, layout.N, layout.Inset{Top: edge}, a.dock)
+	dock := atRect(gtx, layout.N, layout.Inset{Top: edge}, a.dock)
+	a.tourUI.dock = dock
+	// The colour & thickness button is the dock's last control.
+	a.tourUI.style = image.Rect(dock.Max.X-gtx.Dp(6+36), dock.Min.Y+gtx.Dp(4), dock.Max.X-gtx.Dp(6), dock.Max.Y-gtx.Dp(4))
 	if a.showStyle {
 		at(gtx, layout.N, layout.Inset{Top: top}, a.stylePanel)
 	}
 	a.selectionBar(gtx)
 	if !a.focus {
-		at(gtx, layout.SW, layout.UniformInset(edge), func(gtx C) D {
+		a.tourUI.menu = atRect(gtx, layout.SW, layout.UniformInset(edge), func(gtx C) D {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(a.menuPill),
 				layout.Rigid(func(gtx C) D {
@@ -222,7 +238,7 @@ func (a *App) canvasArea(gtx C) D {
 				}),
 			)
 		})
-		at(gtx, layout.SE, layout.UniformInset(edge), a.zoomPill)
+		a.tourUI.zoom = atRect(gtx, layout.SE, layout.UniformInset(edge), a.zoomPill)
 	}
 	if gtx.Now.Before(a.toastUntil) {
 		at(gtx, layout.S, layout.Inset{Bottom: 18}, a.toastView)

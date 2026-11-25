@@ -39,6 +39,8 @@ type Settings struct {
 	SaveDir string
 	// NewFormat is the file type for new notebooks: "dott" (default) or "xopp".
 	NewFormat string
+	// TourDone is set once the first-run tour is finished or skipped.
+	TourDone bool
 }
 
 // PageTemplate is the page new notebooks start with. Zero means A4 lined white.
@@ -98,6 +100,9 @@ func Save(s Settings) error {
 	p, err := path()
 	if err != nil {
 		return err
+	}
+	if !s.TourDone { // once any window finished the tour, it stays done
+		s.TourDone = Load().TourDone
 	}
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 		return err

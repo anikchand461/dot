@@ -260,6 +260,7 @@ type App struct {
 	homeLogo                                            widget.Clickable
 	pointerAt                                           image.Point          // last pointer position in the window
 	hoverSeen                                           map[string]time.Time // corner -> last time the pointer was near
+	tourUI                                              tourState
 
 	// Colour picking.
 	penPicker, paperPicker         *colorPicker
@@ -1055,6 +1056,7 @@ func (a *App) layout(gtx C) {
 		})
 		return
 	}
+	a.startTour()
 	// The page gets the whole window; every control floats on top.
 	drainBlocker(gtx)
 	a.trackPointer(gtx)
@@ -1072,6 +1074,9 @@ func (a *App) layout(gtx C) {
 	}
 	if a.showHelp {
 		a.help(gtx)
+	}
+	if a.tourUI.on {
+		a.tour(gtx)
 	}
 }
 
@@ -1197,6 +1202,17 @@ func (a *App) handleKeys(gtx C) {
 		shift := e.Modifiers.Contain(key.ModShift)
 		if cmd && a.typing(gtx) && (e.Name == "C" || e.Name == "V" || e.Name == "X" || e.Name == "A") {
 			continue // the text field handles its own clipboard
+		}
+		// The tour: Return for next, Esc to skip; other keys still work.
+		if a.tourUI.on && !a.home && !cmd && !a.typing(gtx) {
+			switch e.Name {
+			case key.NameReturn, key.NameEnter:
+				a.tourNext()
+				continue
+			case key.NameEscape:
+				a.endTour()
+				continue
+			}
 		}
 		if a.home { // Home: only app-level shortcuts
 			switch {
