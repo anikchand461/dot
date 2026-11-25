@@ -2,6 +2,7 @@
 # Builds two macOS apps, one per processor:
 #   build/macos-apple-silicon/dot.app   (M1, M2, M3, M4 … Macs)
 #   build/macos-intel/dot.app           (Intel Macs)
+# plus a drag-to-Applications disk image for each: build/dot-macos-*.dmg
 # Each contains only its own machine code, so it is about half the size
 # of a universal app. Build just one with: ./scripts/package-macos.sh arm64
 set -eu
@@ -11,8 +12,8 @@ targets=${1:-"arm64 amd64"}
 
 for arch in $targets; do
 	case $arch in
-	arm64) dir=build/macos-apple-silicon; min=12.0 ;; # Go 1.25+ needs macOS 12
-	amd64) dir=build/macos-intel; min=12.0 ;;
+	arm64) dir=build/macos-apple-silicon; name=macos-apple-silicon; min=12.0 ;; # Go 1.25+ needs macOS 12
+	amd64) dir=build/macos-intel; name=macos-intel; min=12.0 ;;
 	*) echo "unknown arch $arch (use arm64 or amd64)"; exit 1 ;;
 	esac
 	APP=$dir/dot.app
@@ -44,4 +45,14 @@ PLIST
 	# identity + notarisation to distribute to other Macs.
 	codesign --force --deep --sign - "$APP"
 	echo "Built $APP ($(du -sh "$APP" | cut -f1), $arch)"
+
+	# Disk image for downloading: open it and drag dot! to Applications.
+	DMG="build/dot-$name.dmg"
+	STAGE=$(mktemp -d)
+	cp -R "$APP" "$STAGE/"
+	ln -s /Applications "$STAGE/Applications"
+	rm -f "$DMG"
+	hdiutil create -quiet -volname "dot!" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG"
+	rm -rf "$STAGE"
+	echo "Built $DMG ($(du -h "$DMG" | cut -f1))"
 done

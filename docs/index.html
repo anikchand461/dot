@@ -8,11 +8,13 @@
 <meta name="description" content="dot! is a fast, offline handwriting notebook for macOS, Windows and Linux. Pen pressure, Excalidraw-style diagrams, PDF annotation, and full Xournal++ compatibility.">
 <meta property="og:title" content="dot! · a fast, modern handwriting notebook">
 <meta property="og:description" content="Offline handwriting notes with pen pressure, diagrams and PDF annotation. Opens Xournal++ files.">
-<meta property="og:image" content="images/editor.png">
+<meta property="og:image" content="https://dot-docs-brown.vercel.app/images/editor.png">
+<meta property="og:url" content="https://dot-docs-brown.vercel.app/">
+<link rel="canonical" href="https://dot-docs-brown.vercel.app/">
 <link rel="icon" type="image/png" href="images/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&family=Kalam:wght@700&family=Shantell+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f1014;
@@ -32,6 +34,8 @@
     margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1.3px);
+    background-size: 26px 26px;
   }
   a { color: inherit; text-decoration: none; }
   img { max-width: 100%; height: auto; display: block; }
@@ -180,6 +184,7 @@
   .help { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
   .help div { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; font-size: 14px; color: var(--muted); }
   .help b { color: var(--text); display: block; margin-bottom: 4px; }
+  code.cmd { display: block; margin-top: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
   code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: #24252d; padding: 2px 6px; border-radius: 6px; color: #dcd3ff; }
 
   /* closing */
@@ -192,6 +197,32 @@
   footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   footer .brand { font-size: 16px; color: var(--text); }
   footer .brand img { width: 22px; height: 22px; }
+
+
+  /* hero demo: dot! writing a page by itself */
+  .shot .bar { align-items: center; }
+  .shot .bar span { margin: 0 auto; transform: translateX(-30px); font-size: 13px; color: var(--muted); }
+  #demo { display: block; width: 100%; height: auto; background: #15161b; }
+  #demo .slot { fill: transparent; transition: fill .25s; }
+  #demo .tool { color: #9a9ba8; transition: color .25s; }
+  #demo .tool.on { color: #fff; }
+  #demo .tool.on .slot { fill: var(--accent); }
+  #demo #pen { transition: opacity .25s; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .35)); }
+
+  /* ink anywhere */
+  #ink-layer { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+  .ink-chip {
+    position: fixed; right: 18px; bottom: 18px; z-index: 61;
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px;
+    border-radius: 999px; border: 1px solid var(--line); background: rgba(26, 27, 34, .88);
+    backdrop-filter: blur(10px); color: var(--muted); font: 500 13px Inter, sans-serif; cursor: pointer; transition: .2s;
+  }
+  .ink-chip:hover { color: var(--text); border-color: #4a4b58; }
+  .ink-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: #5b5c68; transition: .2s; }
+  .ink-on .ink-chip .dot { background: var(--accent2); box-shadow: 0 0 0 4px rgba(139, 108, 255, .2); }
+  .ink-on body { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M2 24 L5 16 L19 2 L24 7 L10 21 Z' fill='%23b49dff' stroke='%230f1014' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M2 24 L5 16 L10 21 Z' fill='%23ececf1'/%3E%3C/svg%3E") 2 24, crosshair; }
+  .ink-on a, .ink-on button { cursor: pointer; }
+  @media (hover: none) { .ink-chip { display: none; } }
 
   .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s, transform .7s; }
   .js .reveal.in { opacity: 1; transform: none; }
@@ -250,8 +281,41 @@
     </div>
     <div class="meta"><span id="version">v0.4.0</span> · <a href="#download">All platforms</a> · No account, no cloud</div>
     <div class="shot reveal">
-      <div class="bar"><i></i><i></i><i></i></div>
-      <img src="images/editor.png" alt="Writing in dot!: handwriting fonts and a Plan, Build, Ship diagram" width="1400" height="875">
+      <div class="bar"><i></i><i></i><i></i><span>Weekly ideas — dot!</span></div>
+      <svg id="demo" viewBox="0 0 1000 600" role="img" aria-label="Animation: dot! writing a page of notes, drawing boxes and bending arrows">
+        <defs>
+          <pattern id="paperdots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.3" fill="#d3cab4"/></pattern>
+          <clipPath id="paperclip"><rect x="170" y="74" width="660" height="526"/></clipPath>
+        </defs>
+        <rect x="170" y="74" width="660" height="526" fill="#f8f3e6"/>
+        <rect x="170" y="74" width="660" height="526" fill="url(#paperdots)"/>
+        <g id="inkg" clip-path="url(#paperclip)"></g>
+
+        <g transform="translate(374 18)">
+          <rect width="252" height="44" rx="22" fill="#22232a" stroke="#34353f"/>
+          <g class="tool" data-tool="select" transform="translate(26 22)"><rect class="slot" x="-16" y="-16" width="32" height="32" rx="9"/><ellipse rx="8" ry="6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2.5"/><path d="M2 6 L4 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+          <g class="tool" data-tool="pen" transform="translate(66 22)"><rect class="slot" x="-16" y="-16" width="32" height="32" rx="9"/><path d="M-7 7 L-5 1 L4 -8 L8 -4 L-1 5 Z" fill="currentColor"/></g>
+          <g class="tool" data-tool="highlighter" transform="translate(106 22)"><rect class="slot" x="-16" y="-16" width="32" height="32" rx="9"/><path d="M-4 3 L4 -5 L8 -1 L0 7 Z M-4 3 L-8 9 L-2 9 L0 7" fill="currentColor"/></g>
+          <g class="tool" data-tool="eraser" transform="translate(146 22)"><rect class="slot" x="-16" y="-16" width="32" height="32" rx="9"/><g transform="rotate(-40)"><rect x="-9" y="-4.5" width="18" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="-9" y="-4.5" width="7" height="9" rx="2" fill="currentColor"/></g></g>
+          <g class="tool" data-tool="shapes" transform="translate(186 22)"><rect class="slot" x="-16" y="-16" width="32" height="32" rx="9"/><circle cx="-3" cy="-3" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="0" y="0" width="8" height="8" rx="1.5" fill="currentColor"/></g>
+          <g class="tool" data-tool="text" transform="translate(226 22)"><rect class="slot" x="-16" y="-16" width="32" height="32" rx="9"/><text y="6" text-anchor="middle" font-family="Inter, sans-serif" font-weight="700" font-size="17" fill="currentColor">T</text></g>
+        </g>
+
+        <image href="images/mark.png" x="22" y="552" width="30" height="30"/>
+        <g transform="translate(66 551)">
+          <rect width="96" height="32" rx="16" fill="#22232a" stroke="#34353f"/>
+          <text x="48" y="21" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#c5c5d0">↑ 1 / 1 ↓</text>
+        </g>
+        <g transform="translate(860 551)">
+          <rect width="118" height="32" rx="16" fill="#22232a" stroke="#34353f"/>
+          <text x="59" y="21" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#c5c5d0">−  125%  +</text>
+        </g>
+
+        <g id="pen" opacity="0">
+          <path d="M0 0 L3 -12 L30 -52 L40 -45 L12 -6 Z" fill="#2c2e3b" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M0 0 L3 -12 L12 -6 Z" fill="#8b6cff"/>
+        </g>
+      </svg>
     </div>
   </div>
 </header>
@@ -380,34 +444,34 @@
     <div class="center reveal">
       <div class="eyebrow">Download</div>
       <h2>Get dot! for your computer.</h2>
-      <p class="sub">Free, about 10 MB, with no installer needed. Pick your system below.</p>
+      <p class="sub">Free, a quick download of 10–25 MB. Pick your system below.</p>
     </div>
     <div class="dl">
       <div class="os reveal" data-os="mac-arm">
         <svg><use href="#i-apple"/></svg><h3>macOS</h3><span class="chip">Apple Silicon · M1 – M4</span>
-        <div class="files"><a href="https://github.com/anikchand461/dot/releases/latest/download/dot-macos-apple-silicon.zip">Download .zip <span>10 MB</span></a></div>
+        <div class="files"><a href="https://github.com/anikchand461/dot/releases/latest/download/dot-macos-apple-silicon.dmg">Download .dmg <span>11.5 MB</span></a></div>
       </div>
       <div class="os reveal" data-os="mac-intel">
         <svg><use href="#i-apple"/></svg><h3>macOS</h3><span class="chip">Intel</span>
-        <div class="files"><a href="https://github.com/anikchand461/dot/releases/latest/download/dot-macos-intel.zip">Download .zip <span>10 MB</span></a></div>
+        <div class="files"><a href="https://github.com/anikchand461/dot/releases/latest/download/dot-macos-intel.dmg">Download .dmg <span>12.6 MB</span></a></div>
       </div>
       <div class="os reveal" data-os="win">
         <svg><use href="#i-win"/></svg><h3>Windows</h3><span class="chip">Windows 10 / 11</span>
         <div class="files">
-          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot.exe">x64 .exe <span>24 MB</span></a>
-          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-arm64.exe">ARM64 .exe <span>23 MB</span></a>
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot.exe">x64 .exe <span>24.2 MB</span></a>
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-arm64.exe">ARM64 .exe <span>23.3 MB</span></a>
         </div>
       </div>
       <div class="os reveal" data-os="linux">
         <svg><use href="#i-linux"/></svg><h3>Linux</h3><span class="chip">Wayland &amp; X11</span>
         <div class="files">
-          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-linux-amd64.tar.gz">x64 .tar.gz <span>10 MB</span></a>
-          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-linux-arm64.tar.gz">ARM64 .tar.gz <span>10 MB</span></a>
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-linux-amd64.tar.gz">x64 .tar.gz <span>10.5 MB</span></a>
+          <a href="https://github.com/anikchand461/dot/releases/latest/download/dot-linux-arm64.tar.gz">ARM64 .tar.gz <span>10.1 MB</span></a>
         </div>
       </div>
     </div>
     <div class="help reveal">
-      <div><b>macOS: first launch</b>Unzip and drag <code>dot.app</code> to Applications. If macOS says it can't be opened, run <code>xattr -dr com.apple.quarantine /Applications/dot.app</code> once.</div>
+      <div><b>macOS: install</b>Open the <code>.dmg</code> and drag dot! onto Applications. If macOS says it can't be opened on first launch, run this once in Terminal:<code class="cmd">xattr -dr com.apple.quarantine /Applications/dot.app</code></div>
       <div><b>Windows: first launch</b>If SmartScreen appears, click <i>More info → Run anyway</i>. dot! is a single portable <code>.exe</code>.</div>
       <div><b>Linux: install</b>Unpack and run <code>./install.sh</code>. It adds dot! to your app menu with file types, and needs no root.</div>
     </div>
@@ -474,6 +538,288 @@
     io.unobserve(e.target);
   }), { threshold: .15 });
   document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+  // ---- Hero demo: a page writes itself, like using dot! ----
+  (() => {
+    const svg = document.getElementById("demo");
+    if (!svg) return;
+    const NS = "http://www.w3.org/2000/svg";
+    const inkg = svg.querySelector("#inkg"), pen = svg.querySelector("#pen");
+    const INK = "#222658";
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let visible = true;
+    new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(svg);
+
+    const frame = () => new Promise(r => requestAnimationFrame(r));
+    const ease = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    async function anim(ms, fn, e = t => t) {
+      if (reduce) { fn(1); return; }
+      let done = 0, last = await frame();
+      for (;;) {
+        const now = await frame();
+        if (visible && !document.hidden) done += Math.min(now - last, 50);
+        last = now;
+        const t = Math.min(1, done / ms);
+        fn(e(t));
+        if (t >= 1) return;
+      }
+    }
+    const wait = ms => anim(ms, () => {});
+
+    let px = 600, py = 640;
+    function penAt(x, y) { px = x; py = y; pen.setAttribute("transform", `translate(${x} ${y})`); }
+    const showPen = on => pen.setAttribute("opacity", on ? 1 : 0);
+    async function penTo(x, y, ms = 380) {
+      const x0 = px, y0 = py;
+      showPen(true);
+      await anim(ms, t => penAt(x0 + (x - x0) * t, y0 + (y - y0) * t), ease);
+    }
+    function tool(name) {
+      svg.querySelectorAll(".tool").forEach(g => g.classList.toggle("on", g.dataset.tool === name));
+    }
+    function el(tag, attrs, text) {
+      const n = document.createElementNS(NS, tag);
+      for (const k in attrs) n.setAttribute(k, attrs[k]);
+      if (text) n.textContent = text;
+      inkg.appendChild(n);
+      return n;
+    }
+
+    // Handwriting: reveal the text left to right with the pen nib riding along it.
+    let clipN = 0;
+    async function write(node, ms) {
+      const b = node.getBBox();
+      const id = "w" + (clipN++);
+      const cp = document.createElementNS(NS, "clipPath");
+      cp.id = id;
+      const r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", b.x - 4); r.setAttribute("y", b.y - 12);
+      r.setAttribute("height", b.height + 24); r.setAttribute("width", 0);
+      cp.appendChild(r); inkg.appendChild(cp);
+      node.setAttribute("clip-path", `url(#${id})`);
+      node.style.visibility = "visible";
+      await penTo(b.x, b.y + b.height * .72);
+      await anim(ms, t => {
+        r.setAttribute("width", t * (b.width + 8));
+        penAt(b.x + t * b.width, b.y + b.height * .72 + Math.sin(t * b.width / 6) * b.height * .17);
+      });
+    }
+    // A stroke drawn along its path.
+    async function stroke(path, ms) {
+      const len = path.getTotalLength();
+      path.style.strokeDasharray = len;
+      path.style.strokeDashoffset = len;
+      path.style.visibility = "visible";
+      const s0 = path.getPointAtLength(0);
+      await penTo(s0.x, s0.y);
+      await anim(ms, t => {
+        path.style.strokeDashoffset = len * (1 - t);
+        const p = path.getPointAtLength(len * t);
+        penAt(p.x, p.y);
+      });
+    }
+    async function type(node, text) {
+      for (let i = 1; i <= text.length; i++) { node.textContent = text.slice(0, i); await wait(110); }
+    }
+    function arrowD(x1, x2, y, cy) {
+      const mx = (x1 + x2) / 2, a = Math.atan2(y - cy, x2 - mx), L = 11;
+      const h1 = [x2 - L * Math.cos(a - .45), y - L * Math.sin(a - .45)];
+      const h2 = [x2 - L * Math.cos(a + .45), y - L * Math.sin(a + .45)];
+      return [`M${x1} ${y} Q${mx} ${cy} ${x2} ${y}`, `M${h1[0]} ${h1[1]} L${x2} ${y} L${h2[0]} ${h2[1]}`];
+    }
+
+    async function play() {
+      inkg.innerHTML = ""; clipN = 0; inkg.style.opacity = 1;
+      const hl = el("path", { fill: "none", stroke: "rgba(255,206,72,.55)", "stroke-width": 24, "stroke-linecap": "round" });
+      const title = el("text", { x: 232, y: 150, "font-family": "Kalam", "font-weight": 700, "font-size": 42, fill: INK }, "Weekly ideas");
+      const lines = [
+        el("text", { x: 236, y: 212, "font-family": "Caveat", "font-size": 30, fill: INK }, "• Sketch the onboarding flow"),
+        el("text", { x: 236, y: 254, "font-family": "Caveat", "font-size": 30, fill: INK }, "• Annotate the research PDF"),
+        el("text", { x: 236, y: 296, "font-family": "Caveat", "font-size": 30, fill: INK }, "• Ship it on Friday!"),
+      ];
+      const under = el("path", { fill: "none", stroke: "#8b6cff", "stroke-width": 3.5, "stroke-linecap": "round" });
+      const rough = el("path", { fill: "none", stroke: INK, "stroke-width": 2.6, "stroke-linecap": "round", "stroke-linejoin": "round",
+        d: "M232 364 C 280 357, 330 359, 372 363 C 376 388, 373 410, 371 433 C 320 437, 275 435, 229 431 C 226 408, 228 384, 234 361" });
+      const boxes = [[230, "#ffd65c"], [445, "#a5d8ff"], [660, "#b8f0b0"]].map(([x, f]) =>
+        el("rect", { x, y: 361, width: 0, height: 0, rx: 14, fill: f, stroke: INK, "stroke-width": 2.6 }));
+      const labels = [300, 515, 730].map(x => el("text", { x, y: 405, "text-anchor": "middle", "font-family": "Shantell Sans", "font-size": 22, fill: INK }));
+      const arrows = [[370, 445], [585, 660]].map(() => [
+        el("path", { fill: "none", stroke: INK, "stroke-width": 2.6, "stroke-linecap": "round" }),
+        el("path", { fill: "none", stroke: INK, "stroke-width": 2.6, "stroke-linecap": "round", "stroke-linejoin": "round", opacity: 0 })]);
+
+      [title, ...lines, hl, under, rough, ...arrows.map(a => a[0])].forEach(n => n.style.visibility = "hidden");
+
+      // 1. Write a title and underline it.
+      tool("pen");
+      await write(title, 1300);
+      const tb = title.getBBox();
+      under.setAttribute("d", `M${tb.x - 2} ${tb.y + tb.height + 2} C ${tb.x + tb.width * .3} ${tb.y + tb.height + 7}, ${tb.x + tb.width * .7} ${tb.y + tb.height - 3}, ${tb.x + tb.width + 8} ${tb.y + tb.height + 3}`);
+      await stroke(under, 450);
+      // 2. A few notes.
+      for (const n of lines) await write(n, 1050);
+      // 3. Highlight the important bit.
+      tool("highlighter");
+      const lb = lines[2].getBBox();
+      hl.setAttribute("d", `M${lb.x + lb.width * .5} ${lb.y + lb.height * .58} L${lb.x + lb.width + 4} ${lb.y + lb.height * .55}`);
+      await stroke(hl, 500);
+      // 4. Draw a rough box, hold the pen, and it snaps clean.
+      tool("pen");
+      await stroke(rough, 950);
+      await wait(380);
+      const b0 = boxes[0];
+      b0.setAttribute("width", 140); b0.setAttribute("height", 72); b0.setAttribute("opacity", 0);
+      await anim(280, t => { rough.setAttribute("opacity", 1 - t); b0.setAttribute("opacity", t); });
+      // 5. Type inside it.
+      tool("text"); showPen(false);
+      await type(labels[0], "Plan");
+      // 6. Two more boxes with the shape tool.
+      tool("shapes");
+      for (const b of boxes.slice(1)) {
+        const x = +b.getAttribute("x");
+        await penTo(x, 361, 420);
+        await anim(480, t => { b.setAttribute("width", 140 * t); b.setAttribute("height", 72 * t); penAt(x + 140 * t, 361 + 72 * t); }, ease);
+      }
+      tool("text"); showPen(false);
+      await type(labels[1], "Build");
+      await type(labels[2], "Ship");
+      // 7. Connect them with arrows, then bend them.
+      tool("pen");
+      const ends = [[370, 445], [585, 660]];
+      for (let i = 0; i < 2; i++) {
+        const [d, h] = arrowD(ends[i][0], ends[i][1], 397, 397);
+        arrows[i][0].setAttribute("d", d); arrows[i][1].setAttribute("d", h);
+        await stroke(arrows[i][0], 320);
+        arrows[i][0].style.strokeDasharray = "none";
+        arrows[i][1].setAttribute("opacity", 1);
+      }
+      tool("select");
+      await penTo(407, 400, 420);
+      await anim(650, t => {
+        ends.forEach(([a, b], i) => {
+          const [d, h] = arrowD(a, b, 397, 397 + (i ? 1 : -1) * 70 * t);
+          arrows[i][0].setAttribute("d", d); arrows[i][1].setAttribute("d", h);
+        });
+        penAt(407, 400 - 35 * t);
+      }, ease);
+      // 8. Admire, then start a fresh page.
+      await penTo(900, 520, 600);
+      showPen(false); tool("pen");
+      await wait(2600);
+      await anim(500, t => { inkg.style.opacity = 1 - t; });
+    }
+
+    (async () => {
+      try { await Promise.all(["700 42px Kalam", "30px Caveat", "22px 'Shantell Sans'"].map(f => document.fonts.load(f))); } catch (e) {}
+      if (reduce) { await play(); inkg.style.opacity = 1; return; }
+      for (;;) await play();
+    })();
+  })();
+
+  // ---- Ink anywhere: draw on the page with a mouse or pen; it fades away. ----
+  (() => {
+    const root = document.documentElement;
+    const cv = document.createElement("canvas");
+    cv.id = "ink-layer";
+    document.body.appendChild(cv);
+    const ctx = cv.getContext("2d");
+    const chip = document.createElement("button");
+    chip.className = "ink-chip";
+    chip.innerHTML = '<span class="dot"></span><span class="lbl"></span>';
+    document.body.appendChild(chip);
+
+    let on = true;
+    try { on = localStorage.getItem("dot-ink") !== "off"; } catch (e) {}
+    const sync = () => {
+      root.classList.toggle("ink-on", on);
+      chip.querySelector(".lbl").textContent = on ? "Draw anywhere · ink fades" : "Ink off";
+      chip.title = on ? "Turn page ink off" : "Turn page ink on";
+    };
+    sync();
+    chip.addEventListener("click", () => {
+      on = !on; sync();
+      try { localStorage.setItem("dot-ink", on ? "on" : "off"); } catch (e) {}
+    });
+
+    let dpr = 1;
+    function size() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+    }
+    size(); addEventListener("resize", size);
+
+    const strokes = [];
+    let cur = null, running = false;
+    const SKIP = "a, button, input, textarea, select, label, summary, code, .ink-chip";
+
+    function add(e) {
+      const x = e.clientX + scrollX, y = e.clientY + scrollY, now = performance.now();
+      const pts = cur.pts, last = pts[pts.length - 1];
+      let w;
+      if (e.pointerType === "pen" && e.pressure > 0) w = 1 + e.pressure * 4.5;
+      else {
+        const v = last ? Math.hypot(x - last.x, y - last.y) / Math.max(1, now - last.t) : 0;
+        w = Math.max(1.4, Math.min(4.2, 4.2 - v * 1.3));
+      }
+      if (last) {
+        if (Math.hypot(x - last.x, y - last.y) < 1.5) return;
+        w = last.w * .65 + w * .35;
+      }
+      pts.push({ x, y, w, t: now });
+    }
+
+    addEventListener("pointerdown", e => {
+      if (!on || e.button !== 0 || e.pointerType === "touch" || e.target.closest(SKIP)) return;
+      e.preventDefault();
+      cur = { pts: [], end: 0 };
+      strokes.push(cur);
+      add(e);
+      loop();
+    });
+    addEventListener("pointermove", e => {
+      if (!cur) return;
+      const all = e.getCoalescedEvents && e.getCoalescedEvents();
+      for (const c of (all && all.length ? all : [e])) add(c);
+    });
+    const finish = () => { if (cur) { cur.end = performance.now(); cur = null; } };
+    addEventListener("pointerup", finish);
+    addEventListener("pointercancel", finish);
+    addEventListener("blur", finish);
+
+    function draw() {
+      const now = performance.now();
+      ctx.setTransform(dpr, 0, 0, dpr, -scrollX * dpr, -scrollY * dpr);
+      ctx.clearRect(scrollX, scrollY, innerWidth, innerHeight);
+      ctx.lineCap = ctx.lineJoin = "round";
+      for (let i = strokes.length - 1; i >= 0; i--) {
+        const s = strokes[i];
+        const age = s.end ? now - s.end : 0;
+        const a = 1 - Math.min(1, Math.max(0, (age - 1600) / 1100));
+        if (a <= 0) { strokes.splice(i, 1); continue; }
+        const p = s.pts;
+        ctx.strokeStyle = ctx.fillStyle = `rgba(180, 157, 255, ${a * .92})`;
+        if (p.length === 1) { ctx.beginPath(); ctx.arc(p[0].x, p[0].y, p[0].w / 2, 0, 7); ctx.fill(); continue; }
+        for (let j = 1; j < p.length; j++) {
+          const a0 = j === 1 ? p[0] : { x: (p[j - 2].x + p[j - 1].x) / 2, y: (p[j - 2].y + p[j - 1].y) / 2 };
+          const b = { x: (p[j - 1].x + p[j].x) / 2, y: (p[j - 1].y + p[j].y) / 2 };
+          ctx.beginPath();
+          ctx.moveTo(a0.x, a0.y);
+          ctx.quadraticCurveTo(p[j - 1].x, p[j - 1].y, j === p.length - 1 ? p[j].x : b.x, j === p.length - 1 ? p[j].y : b.y);
+          ctx.lineWidth = p[j - 1].w;
+          ctx.stroke();
+        }
+      }
+    }
+    function loop() {
+      if (running) return;
+      running = true;
+      (function tick() {
+        draw();
+        if (strokes.length) requestAnimationFrame(tick);
+        else running = false;
+      })();
+    }
+    addEventListener("scroll", () => { if (strokes.length) loop(); }, { passive: true });
+  })();
 </script>
 </body>
 </html>

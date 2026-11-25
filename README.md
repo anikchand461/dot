@@ -18,6 +18,12 @@
 </p>
 
 <p align="center">
+  <a href="https://dot-docs-brown.vercel.app/"><b>🌐 Website</b></a> &nbsp;·&nbsp;
+  <a href="https://github.com/anikchand461/dot/releases/latest"><b>⬇️ Download</b></a> &nbsp;·&nbsp;
+  <a href="#dot-vs-xournal">⚖️ vs Xournal++</a>
+</p>
+
+<p align="center">
   <img src="docs/images/editor.png" alt="Writing in dot!: handwriting fonts and a diagram" width="860">
 </p>
 
@@ -103,14 +109,31 @@ Xournal++ is still the better choice if you rely on layers, LaTeX, audio notes o
 
 ## Install & run
 
-### Download / build
+### Download
+
+Get the latest version from the **[website](https://dot-docs-brown.vercel.app/#download)** or the **[Releases page](https://github.com/anikchand461/dot/releases/latest)**:
+
+| System | File |
+|---|---|
+| macOS · Apple Silicon (M1–M4) | [`dot-macos-apple-silicon.dmg`](https://github.com/anikchand461/dot/releases/latest/download/dot-macos-apple-silicon.dmg) |
+| macOS · Intel | [`dot-macos-intel.dmg`](https://github.com/anikchand461/dot/releases/latest/download/dot-macos-intel.dmg) |
+| Windows · x64 | [`dot.exe`](https://github.com/anikchand461/dot/releases/latest/download/dot.exe) |
+| Windows · ARM64 | [`dot-arm64.exe`](https://github.com/anikchand461/dot/releases/latest/download/dot-arm64.exe) |
+| Linux · x64 | [`dot-linux-amd64.tar.gz`](https://github.com/anikchand461/dot/releases/latest/download/dot-linux-amd64.tar.gz) |
+| Linux · ARM64 | [`dot-linux-arm64.tar.gz`](https://github.com/anikchand461/dot/releases/latest/download/dot-linux-arm64.tar.gz) |
+
+- **macOS:** open the `.dmg` and drag dot! to Applications. The app isn't notarized by Apple yet, so if macOS says it can't be opened, run `xattr -dr com.apple.quarantine /Applications/dot.app` once.
+- **Windows:** just run the `.exe`. If SmartScreen appears, click *More info → Run anyway*.
+- **Linux:** unpack the tarball and run `./install.sh`.
+
+### Build it yourself
 
 dot! runs on **macOS, Windows and Linux**.
 
 | Platform | Command | Result |
 |---|---|---|
-| macOS · Apple Silicon | `./scripts/package-macos.sh arm64` | `build/macos-apple-silicon/dot.app` |
-| macOS · Intel | `./scripts/package-macos.sh amd64` | `build/macos-intel/dot.app` |
+| macOS · Apple Silicon | `./scripts/package-macos.sh arm64` | `build/macos-apple-silicon/dot.app` + `build/dot-macos-apple-silicon.dmg` |
+| macOS · Intel | `./scripts/package-macos.sh amd64` | `build/macos-intel/dot.app` + `build/dot-macos-intel.dmg` |
 | Windows · x64 / ARM64 | `./scripts/build-windows.sh` | `build/dot.exe`, `build/dot-arm64.exe` |
 | Linux · x64 / ARM64 (on Linux) | `./scripts/build-linux.sh` | `build/dot-linux-<arch>.tar.gz` |
 | Linux, from macOS/Windows | `./scripts/build-linux-docker.sh` | same, built in Docker |
