@@ -1172,8 +1172,6 @@ func (a *App) handleKeys(gtx C) {
 		key.Filter{Required: sc, Name: "-"},
 		key.Filter{Required: sc, Name: "0"},
 		key.Filter{Name: key.NameEscape},
-		key.Filter{Name: key.NameReturn},
-		key.Filter{Name: key.NameEnter},
 		key.Filter{Name: key.NamePageDown},
 		key.Filter{Name: key.NamePageUp},
 		key.Filter{Name: key.NameSpace},
@@ -1192,6 +1190,8 @@ func (a *App) handleKeys(gtx C) {
 			key.Filter{Required: sc, Name: "C"},
 			key.Filter{Required: sc, Name: "X"},
 			key.Filter{Required: sc, Name: "V"},
+			key.Filter{Name: key.NameReturn}, // Return submits a field
+			key.Filter{Name: key.NameEnter},
 			key.Filter{Name: key.NameDeleteBackward},
 			key.Filter{Name: key.NameDeleteForward},
 		)
