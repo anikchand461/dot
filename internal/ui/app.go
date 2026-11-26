@@ -257,6 +257,7 @@ type App struct {
 	focus                                               bool // hide everything but the page and dock
 	home                                                bool // the Home page (all notebooks) is showing
 	homeUI                                              homeState
+	exportUI                                            exportState
 	homeLogo                                            widget.Clickable
 	pointerAt                                           image.Point          // last pointer position in the window
 	hoverSeen                                           map[string]time.Time // corner -> last time the pointer was near
@@ -354,6 +355,7 @@ func Run(w *app.Window, path string, opts Options) error {
 	a.opts, a.id = opts, windowSeq.Add(1)
 	in.SetWake(w.Invalidate) // trackpad gestures arrive outside Gio's event loop
 	a.cv.Wake = w.Invalidate // PDF pages finish rendering in the background
+	a.cv.OnScrollPastEnd, a.cv.OnAddPage = a.addPageAtEnd, a.addPageAtEnd
 
 	if path != "" {
 		// Show the window at once; big notebooks load in the background.
@@ -928,15 +930,6 @@ func (a *App) baseName() string {
 	return strings.TrimSuffix(filepath.Base(a.path), filepath.Ext(a.path))
 }
 
-func (a *App) exportPDF() {
-	var buf bytes.Buffer
-	if err := export.FinalPDF(&buf, a.doc); err != nil {
-		a.notify("Export failed: " + err.Error())
-		return
-	}
-	a.exportBytes(a.baseName()+" (annotated).pdf", buf.Bytes(), "Exported PDF")
-}
-
 func (a *App) exportPNG() {
 	var buf bytes.Buffer
 	i := a.cv.Current()
@@ -1088,6 +1081,7 @@ func (a *App) layout(gtx C) {
 	if a.tourUI.on {
 		a.tour(gtx)
 	}
+	a.exportDialog(gtx)
 }
 
 func (a *App) trackPointer(gtx C) {
@@ -1124,19 +1118,10 @@ func (a *App) hoverNear(gtx C, key string, r image.Rectangle) bool {
 	return false
 }
 
-// addPageAtEnd adds a page after the last one (scrolling past the end).
-// Only when the last page has something on it: no runs of blank pages.
+// addPageAtEnd adds a page after the last one (the + under it, or
+// scrolling past the end).
 func (a *App) addPageAtEnd() {
 	last := a.doc.Pages[len(a.doc.Pages)-1]
-	empty := true
-	for _, l := range last.Layers {
-		if len(l.Items) > 0 {
-			empty = false
-		}
-	}
-	if empty {
-		return
-	}
 	p := document.NewPage(last.Width, last.Height, last.Background.StyleOr(document.StylePlain), last.Background.Color)
 	if last.Background.Type == "pixmap" {
 		p.Background = last.Background
@@ -1153,7 +1138,8 @@ func (a *App) typing(gtx C) bool {
 	return a.cv.Editing() || gtx.Source.Focused(&a.customW) || gtx.Source.Focused(&a.customH) ||
 		gtx.Source.Focused(&a.penPicker.hex) || gtx.Source.Focused(&a.paperPicker.hex) ||
 		gtx.Source.Focused(&a.fillPicker.hex) || gtx.Source.Focused(&a.homeUI.search) ||
-		gtx.Source.Focused(&a.homeUI.renameEd)
+		gtx.Source.Focused(&a.homeUI.renameEd) || gtx.Source.Focused(&a.exportUI.from) ||
+		gtx.Source.Focused(&a.exportUI.to)
 }
 
 func (a *App) handleKeys(gtx C) {
@@ -1217,6 +1203,16 @@ func (a *App) handleKeys(gtx C) {
 		}
 		cmd := e.Modifiers.Contain(sc)
 		shift := e.Modifiers.Contain(key.ModShift)
+		// The export dialog is modal: Return exports, Esc closes.
+		if a.exportUI.on && !a.home {
+			switch e.Name {
+			case key.NameReturn, key.NameEnter:
+				a.saveExport()
+			case key.NameEscape:
+				a.exportUI.on, a.exportUI.data = false, nil
+			}
+			continue
+		}
 		// The tour: Return for next, Esc to skip; other keys still work.
 		if a.tourUI.on && !a.home && !cmd && !a.typing(gtx) {
 			switch e.Name {

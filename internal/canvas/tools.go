@@ -77,7 +77,10 @@ func (c *Canvas) press(gtx layout.Context, e pointer.Event) {
 	}
 	page, pt, ok := c.pageAt(e.Position)
 	if !ok {
+		// Off the paper there's nothing to draw on: drag moves the view
+		// (and dragging up past the last page adds one).
 		c.ClearSelection()
+		c.gesture, c.panLast = gPan, e.Position
 		return
 	}
 	c.gPage, c.gStart, c.gLast = page, pt, pt

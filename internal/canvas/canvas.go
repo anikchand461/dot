@@ -17,6 +17,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
@@ -141,7 +142,12 @@ type Canvas struct {
 	// OnScrollPastEnd is called when the user keeps scrolling down past the
 	// last page (the app adds a new page).
 	OnScrollPastEnd func()
-	overscroll      float32
+	// OnAddPage is called when the + under the last page is clicked.
+	OnAddPage  func()
+	overscroll float32
+	overAt     time.Time // last scroll that pushed past the end
+	addCenter  f32.Point // screen px of the + under the last page
+	addRadius  float32   // 0 while it is off screen
 
 	// Zoom is dp per pt; 1 shows an A4 page 595dp wide.
 	Zoom float32
@@ -286,6 +292,7 @@ func (c *Canvas) clampPanY(y, margin, vh float32) float32 {
 // can actually scroll, so the animation always finishes (an unreachable
 // target would keep redrawing forever).
 func (c *Canvas) ScrollToPage(i int) {
+	c.layoutPages() // pages may have been added since this frame's layout
 	if i < 0 || i >= len(c.tops) {
 		return
 	}
@@ -600,6 +607,7 @@ func (c *Canvas) Layout(gtx layout.Context) layout.Dimensions {
 	c.updateTransform(gtx)
 	c.handleEvents(gtx)
 	c.checkHold(gtx)
+	c.layoutPages() // events may have added pages (the + under the last one)
 	c.updateTransform(gtx)
 
 	defer clip.Rect{Max: c.view}.Push(gtx.Ops).Pop()
@@ -650,6 +658,7 @@ func (c *Canvas) Layout(gtx layout.Context) layout.Dimensions {
 		cl.Pop()
 		t.Pop()
 	}
+	c.drawAddPage(gtx)
 	c.drawSelectionChrome(gtx)
 	c.drawCrop(gtx)
 
@@ -683,6 +692,8 @@ func (c *Canvas) cursor() pointer.Cursor {
 	switch {
 	case c.gesture == gPan:
 		return pointer.CursorGrabbing
+	case c.gesture == gNone && c.hovering && c.overAddButton(c.hover):
+		return pointer.CursorPointer
 	case c.SpacePan || c.Tool == Hand:
 		return pointer.CursorGrab
 	case c.Tool == Eraser:
@@ -771,6 +782,11 @@ func (c *Canvas) handleEvents(gtx layout.Context) {
 			// Fingers, the secondary/middle buttons, space and the hand
 			// tool pan; the pen/primary button uses the active tool.
 			c.zooming, c.scrolling = false, false
+			if c.overAddButton(e.Position) && c.OnAddPage != nil {
+				c.gesture, c.gPage = gNone, nil
+				c.OnAddPage()
+				continue
+			}
 			if e.Source == pointer.Touch || c.SpacePan || c.Tool == Hand ||
 				e.Buttons.Contain(pointer.ButtonSecondary) || e.Buttons.Contain(pointer.ButtonTertiary) {
 				c.gesture, c.panLast = gPan, e.Position
@@ -840,18 +856,126 @@ func (c *Canvas) expireLasers(gtx layout.Context) {
 	}
 }
 
+// overscrollFull is how far past the end you scroll to add a page.
+const overscrollFull = 140 // dp
+
 // checkOverscroll accumulates scrolling beyond the end of the last page
-// and asks for a new page once it's clearly intentional.
+// and asks for a new page once it's clearly intentional. A blank last
+// page never grows another (no runs of empty pages from a flick).
 func (c *Canvas) checkOverscroll(gtx layout.Context, dy float32) {
 	margin := marginDp * gtx.Metric.PxPerDp
 	maxPan := max(0, c.contentH*c.scale+2*margin-float32(c.view.Y)*0.5)
-	if dy <= 0 || c.pan.Y < maxPan {
+	if dy < 0 || c.pan.Y < maxPan || c.lastPageBlank() {
 		c.overscroll = 0
 		return
 	}
+	if dy == 0 { // sideways wobble, or a drag's first move: keep the progress
+		return
+	}
 	c.overscroll += dy
-	if c.overscroll > float32(gtx.Dp(140)) && c.OnScrollPastEnd != nil {
+	c.overAt = c.now
+	if c.overscroll > float32(gtx.Dp(overscrollFull)) && c.OnScrollPastEnd != nil {
 		c.overscroll = 0
 		c.OnScrollPastEnd()
 	}
+}
+
+func (c *Canvas) lastPageBlank() bool {
+	if len(c.Doc.Pages) == 0 {
+		return true
+	}
+	for _, l := range c.Doc.Pages[len(c.Doc.Pages)-1].Layers {
+		if len(l.Items) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Canvas) overAddButton(at f32.Point) bool {
+	return c.addRadius > 0 && hypot(at.Sub(c.addCenter)) <= c.addRadius*1.15
+}
+
+// drawAddPage draws a big + under the last page. Scrolling on past the
+// end fills a ring around it; a full ring (or a click) adds a page.
+func (c *Canvas) drawAddPage(gtx layout.Context) {
+	c.addRadius = 0
+	if len(c.Doc.Pages) == 0 || c.OnAddPage == nil {
+		return
+	}
+	// The ring empties again shortly after scrolling stops.
+	if c.overscroll > 0 && c.now.Sub(c.overAt) > 250*time.Millisecond {
+		if c.overscroll *= 0.8; c.overscroll < 1 {
+			c.overscroll = 0
+		}
+		gtx.Execute(op.InvalidateCmd{})
+	}
+	last := len(c.Doc.Pages) - 1
+	bottom := c.off.Y + (c.tops[last]+c.Doc.Pages[last].Height)*c.scale
+	r := float32(gtx.Dp(30))
+	center := f32.Pt(c.off.X+c.contentW*c.scale/2, bottom+float32(gtx.Dp(64))+r)
+	if center.Y-r > float32(c.view.Y) || center.Y+r < 0 {
+		return
+	}
+	progress := min(1, c.overscroll/float32(gtx.Dp(overscrollFull)))
+	c.addCenter, c.addRadius = center, r
+	r *= 1 + 0.2*progress
+
+	hot := c.hovering && c.overAddButton(c.hover)
+	bg := color.NRGBA{0xff, 0xff, 0xff, 0x10}
+	if hot || progress > 0 {
+		bg = color.NRGBA{0x8b, 0x6c, 0xff, 0x40}
+	}
+	var path clip.Path
+	path.Begin(gtx.Ops)
+	circle(&path, center, r)
+	paint.FillShape(gtx.Ops, bg, clip.Outline{Path: path.End()}.Op())
+	path.Begin(gtx.Ops)
+	circle(&path, center, r)
+	paint.FillShape(gtx.Ops, color.NRGBA{0xff, 0xff, 0xff, 0x30}, clip.Stroke{Path: path.End(), Width: float32(gtx.Dp(1.5))}.Op())
+	if progress > 0 {
+		// Progress ring, clockwise from the top.
+		ring := r + float32(gtx.Dp(5))
+		path.Begin(gtx.Ops)
+		const steps = 64
+		end := int(math.Ceil(float64(progress * steps)))
+		for k := 0; k <= end; k++ {
+			a := float64(min(float32(k)/steps, progress))*2*math.Pi - math.Pi/2
+			pt := center.Add(f32.Pt(ring*float32(math.Cos(a)), ring*float32(math.Sin(a))))
+			if k == 0 {
+				path.MoveTo(pt)
+			} else {
+				path.LineTo(pt)
+			}
+		}
+		paint.FillShape(gtx.Ops, Accent, clip.Stroke{Path: path.End(), Width: float32(gtx.Dp(3))}.Op())
+	}
+	// The plus.
+	arm, th := r*0.45, float32(gtx.Dp(3))
+	plus := color.NRGBA{0xff, 0xff, 0xff, 0xc0}
+	if hot || progress > 0 {
+		plus = color.NRGBA{0xff, 0xff, 0xff, 0xff}
+	}
+	for _, rc := range []image.Rectangle{
+		image.Rect(int(center.X-arm), int(center.Y-th/2), int(center.X+arm), int(center.Y+th/2)),
+		image.Rect(int(center.X-th/2), int(center.Y-arm), int(center.X+th/2), int(center.Y+arm)),
+	} {
+		paint.FillShape(gtx.Ops, plus, clip.UniformRRect(rc, int(th/2)).Op(gtx.Ops))
+	}
+	// Label under it.
+	label := "Add page"
+	switch {
+	case progress > 0:
+		label = "Keep scrolling to add a page"
+	case !c.lastPageBlank():
+		label = "Add page · or keep scrolling"
+	}
+	l := material.Body2(c.Theme, label)
+	l.Color = color.NRGBA{0xff, 0xff, 0xff, 0x90}
+	l.Alignment = text.Middle
+	lg := gtx
+	lg.Constraints = layout.Exact(image.Pt(gtx.Dp(300), gtx.Dp(24)))
+	t := op.Offset(image.Pt(int(center.X)-gtx.Dp(150), int(center.Y+r)+gtx.Dp(12))).Push(gtx.Ops)
+	l.Layout(lg)
+	t.Pop()
 }
