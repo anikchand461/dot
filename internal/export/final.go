@@ -9,6 +9,8 @@ import (
 	"io"
 	"math"
 
+	"gioui.org/f32"
+
 	"dot/internal/canvas"
 	"dot/internal/document"
 	"dot/internal/pdf"
@@ -55,9 +57,13 @@ func overlay(p *document.Page) pdf.Overlay {
 					for _, p := range it.Points {
 						pts = append(pts, [2]float32{p.X, p.Y})
 					}
-					ov.Fills = append(ov.Fills, pdf.Fill{Points: pts, Color: it.Fill})
+					ov.Fills = append(ov.Fills, pdf.Fill{Paths: [][][2]float32{pts}, Color: it.Fill})
 				}
-				ov.Lines = append(ov.Lines, runs(it)...)
+				if it.Color.A < 255 { // see strokePath
+					ov.Fills = append(ov.Fills, pdf.Fill{Paths: outline(it), Color: it.Color})
+				} else {
+					ov.Lines = append(ov.Lines, runs(it)...)
+				}
 			case *document.RawElement:
 				switch it.Name {
 				case "text":
@@ -118,6 +124,46 @@ func runs(s *document.Stroke) []pdf.Line {
 	}
 	return out
 }
+
+// outline returns the closed outlines that fill s (canvas.StrokeOutline),
+// with curves flattened to short lines.
+func outline(s *document.Stroke) [][][2]float32 {
+	var o outliner
+	canvas.StrokeOutline(&o, s)
+	return o.paths
+}
+
+type outliner struct {
+	paths [][][2]float32
+	cur   f32.Point
+}
+
+func (o *outliner) MoveTo(to f32.Point) {
+	o.paths = append(o.paths, [][2]float32{{to.X, to.Y}})
+	o.cur = to
+}
+
+func (o *outliner) LineTo(to f32.Point) {
+	if len(o.paths) == 0 {
+		o.MoveTo(to)
+		return
+	}
+	last := &o.paths[len(o.paths)-1]
+	*last = append(*last, [2]float32{to.X, to.Y})
+	o.cur = to
+}
+
+func (o *outliner) CubeTo(c0, c1, to f32.Point) {
+	p0 := o.cur
+	const steps = 6 // plenty for the quarter circles of caps and joints
+	for i := 1; i <= steps; i++ {
+		t := float32(i) / steps
+		u := 1 - t
+		o.LineTo(p0.Mul(u * u * u).Add(c0.Mul(3 * u * u * t)).Add(c1.Mul(3 * u * t * t)).Add(to.Mul(t * t * t)))
+	}
+}
+
+func (o *outliner) Close() {}
 
 // toJPEG flattens transparency onto white (JPEG has no alpha).
 func toJPEG(img image.Image) []byte {

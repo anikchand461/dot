@@ -200,16 +200,45 @@ func fillPoly(ops *op.Ops, pts []f32.Point, c color.NRGBA) {
 }
 
 func drawSolid(ops *op.Ops, s *document.Stroke, minSeg float32) {
-	pts, ws := renderPoints(s, minSeg)
-	if len(pts) == 0 {
+	if len(s.Points) == 0 {
 		return
 	}
 	var path clip.Path
 	path.Begin(ops)
+	solidOutline(&path, s, minSeg)
+	paint.FillShape(ops, s.Color, clip.Outline{Path: path.End()}.Op())
+}
+
+// Pather receives an outline; *clip.Path is one.
+type Pather interface {
+	MoveTo(to f32.Point)
+	LineTo(to f32.Point)
+	CubeTo(ctrl0, ctrl1, to f32.Point)
+	Close()
+}
+
+// StrokeOutline traces s as the closed outlines the screen fills: filled
+// as one shape with the non-zero rule, every spot is painted once, so a
+// translucent highlighter stays even where it crosses itself.
+func StrokeOutline(p Pather, s *document.Stroke) {
+	for _, pc := range s.Pieces() {
+		if pc.Dot {
+			circle(p, pc.Points[0], pc.Widths[0]/2)
+			continue
+		}
+		solidOutline(p, &document.Stroke{Points: pc.Points, Widths: pc.Widths, Width: s.Width}, 0)
+	}
+}
+
+// solidOutline traces one solid piece.
+func solidOutline(path Pather, s *document.Stroke, minSeg float32) {
+	pts, ws := renderPoints(s, minSeg)
 	n := len(pts)
+	if n == 0 {
+		return
+	}
 	if n == 1 {
-		circle(&path, pts[0], ws[0]/2)
-		paint.FillShape(ops, s.Color, clip.Outline{Path: path.End()}.Op())
+		circle(path, pts[0], ws[0]/2)
 		return
 	}
 	start := 0
@@ -220,19 +249,18 @@ func drawSolid(ops *op.Ops, s *document.Stroke, minSeg float32) {
 			turned += math.Abs(math.Atan2(float64(a.X*b.Y-a.Y*b.X), float64(a.X*b.X+a.Y*b.Y)))
 		}
 		if i == n-1 || turned > math.Pi/2 || i-start >= chunkPoints {
-			chunk(&path, pts[start:i+1], ws[start:i+1], start == 0, i == n-1)
+			chunk(path, pts[start:i+1], ws[start:i+1], start == 0, i == n-1)
 			if i < n-1 {
-				circle(&path, pts[i], ws[i]/2) // round joint over the seam
+				circle(path, pts[i], ws[i]/2) // round joint over the seam
 			}
 			start, turned = i, 0
 		}
 	}
-	paint.FillShape(ops, s.Color, clip.Outline{Path: path.End()}.Op())
 }
 
 // chunk appends one closed outline around pts; first/last get round caps,
 // inner ends are cut square (the caller covers them with a joint disc).
-func chunk(path *clip.Path, pts []f32.Point, ws []float32, first, last bool) {
+func chunk(path Pather, pts []f32.Point, ws []float32, first, last bool) {
 	n := len(pts)
 	nrm := make([]f32.Point, n)
 	for i := range pts {
@@ -264,7 +292,7 @@ func chunk(path *clip.Path, pts []f32.Point, ws []float32, first, last bool) {
 
 // halfCap draws a semicircle around c from the current point (c ± n·r)
 // to the opposite side, bulging forward (end cap) or backward (start cap).
-func halfCap(p *clip.Path, c, n f32.Point, r float32, end bool) {
+func halfCap(p Pather, c, n f32.Point, r float32, end bool) {
 	const k = 0.5522847
 	fwd := f32.Pt(n.Y, -n.X) // direction of travel
 	if !end {
@@ -309,7 +337,7 @@ func abs32(v float32) float32 {
 }
 
 // circle appends a circle traced in the same direction as the segment quads.
-func circle(p *clip.Path, c f32.Point, r float32) {
+func circle(p Pather, c f32.Point, r float32) {
 	const k = 0.5522847 // cubic Bézier circle constant
 	kr := k * r
 	p.MoveTo(c.Add(f32.Pt(r, 0)))

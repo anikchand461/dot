@@ -225,6 +225,11 @@ func alphaState(b *bytes.Buffer, a uint8, res *resources) {
 // its dash pattern as PDF line runs with round caps and joins. A pressure
 // piece is split into runs whose width stays within ±8%, so the file
 // stays compact while the thick/thin shape is preserved.
+//
+// A translucent stroke (highlighter) is instead filled as its outline, in
+// one non-zero fill, as on screen: viewers differ in how they stroke a
+// translucent path that crosses itself (many darken every overlap and
+// round join), but a single fill paints every spot exactly once.
 func strokePath(b *bytes.Buffer, s *document.Stroke, res *resources) {
 	if len(s.Points) == 0 {
 		return
@@ -243,6 +248,16 @@ func strokePath(b *bytes.Buffer, s *document.Stroke, res *resources) {
 	b.WriteString("q\n")
 	if s.Color.A < 255 {
 		alphaState(b, s.Color.A, res)
+		fmt.Fprintf(b, "%s rg\n", rgb(s.Color))
+		for _, path := range outline(s) {
+			fmt.Fprintf(b, "%s %s m", f(path[0][0]), f(path[0][1]))
+			for _, p := range path[1:] {
+				fmt.Fprintf(b, " %s %s l", f(p[0]), f(p[1]))
+			}
+			b.WriteString(" h\n")
+		}
+		b.WriteString("f\nQ\n")
+		return
 	}
 	fmt.Fprintf(b, "%s RG 1 J 1 j\n", rgb(s.Color))
 	for _, ln := range runs(s) {

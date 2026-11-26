@@ -156,10 +156,11 @@ type Line struct {
 	Color  color.NRGBA
 }
 
-// Fill paints the inside of a closed outline.
+// Fill paints the inside of closed outlines, as one shape with the
+// non-zero rule (overlapping outlines are painted once).
 type Fill struct {
-	Points [][2]float32
-	Color  color.NRGBA
+	Paths [][][2]float32
+	Color color.NRGBA
 }
 
 type Text struct {
@@ -250,21 +251,32 @@ func stamp(inst pdfium.Pdfium, doc references.FPDF_DOCUMENT, i int, ov Overlay) 
 		return err
 	}
 	for _, fl := range ov.Fills {
-		if len(fl.Points) < 3 {
+		var obj references.FPDF_PAGEOBJECT
+		for _, pts := range fl.Paths {
+			if len(pts) < 3 {
+				continue
+			}
+			p0 := pts[0]
+			if obj == "" {
+				path, err := inst.FPDFPageObj_CreateNewPath(&requests.FPDFPageObj_CreateNewPath{X: p0[0], Y: h - p0[1]})
+				if err != nil {
+					return err
+				}
+				obj = path.PageObject
+			} else {
+				inst.FPDFPath_MoveTo(&requests.FPDFPath_MoveTo{PageObject: obj, X: p0[0], Y: h - p0[1]})
+			}
+			for _, p := range pts[1:] {
+				inst.FPDFPath_LineTo(&requests.FPDFPath_LineTo{PageObject: obj, X: p[0], Y: h - p[1]})
+			}
+			inst.FPDFPath_Close(&requests.FPDFPath_Close{PageObject: obj})
+		}
+		if obj == "" {
 			continue
 		}
-		p0 := fl.Points[0]
-		path, err := inst.FPDFPageObj_CreateNewPath(&requests.FPDFPageObj_CreateNewPath{X: p0[0], Y: h - p0[1]})
-		if err != nil {
-			return err
-		}
-		for _, p := range fl.Points[1:] {
-			inst.FPDFPath_LineTo(&requests.FPDFPath_LineTo{PageObject: path.PageObject, X: p[0], Y: h - p[1]})
-		}
-		inst.FPDFPath_Close(&requests.FPDFPath_Close{PageObject: path.PageObject})
-		inst.FPDFPageObj_SetFillColor(&requests.FPDFPageObj_SetFillColor{PageObject: path.PageObject, FillColor: pdfColor(fl.Color)})
-		inst.FPDFPath_SetDrawMode(&requests.FPDFPath_SetDrawMode{PageObject: path.PageObject, FillMode: enums.FPDF_FILLMODE_WINDING})
-		if err := insert(path.PageObject); err != nil {
+		inst.FPDFPageObj_SetFillColor(&requests.FPDFPageObj_SetFillColor{PageObject: obj, FillColor: pdfColor(fl.Color)})
+		inst.FPDFPath_SetDrawMode(&requests.FPDFPath_SetDrawMode{PageObject: obj, FillMode: enums.FPDF_FILLMODE_WINDING})
+		if err := insert(obj); err != nil {
 			return err
 		}
 	}
